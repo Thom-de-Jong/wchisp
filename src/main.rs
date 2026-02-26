@@ -6,9 +6,9 @@ use clap::{Parser, Subcommand};
 use hxdmp::hexdump;
 
 use wchisp::{
+    Baudrate, Flashing,
     constants::SECTOR_SIZE,
     transport::{SerialTransport, UsbTransport},
-    Baudrate, Flashing,
 };
 
 #[derive(Parser)]
@@ -290,10 +290,7 @@ fn main() -> Result<()> {
                     let eeprom = flashing.dump_eeprom()?;
                     log::info!("EEPROM data size: {}", eeprom.len());
 
-                    if let Some(EepromCommands::Dump {
-                        path: Some(path),
-                    }) = command
-                    {
+                    if let Some(EepromCommands::Dump { path: Some(path) }) = command {
                         std::fs::write(path, eeprom)?;
                         log::info!("EEPROM data saved to {}", path);
                     } else {
@@ -358,9 +355,7 @@ fn main() -> Result<()> {
                     log::info!("Debug mode disabled");
                 }
                 Some(ConfigCommands::Set { value }) => {
-                    // flashing.write_config(value)?;
-                    log::info!("setting cfg value {}", value);
-                    unimplemented!()
+                    flashing.write_config(value)?;
                 }
                 Some(ConfigCommands::Unprotect {}) => {
                     flashing.unprotect(true)?;

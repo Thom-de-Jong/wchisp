@@ -3,13 +3,13 @@ use std::time::Duration;
 
 use anyhow::{Ok, Result};
 use indicatif::ProgressBar;
-use scroll::{Pread, Pwrite, LE};
+use scroll::{LE, Pread, Pwrite};
 
 use crate::{
-    constants::{CFG_MASK_ALL, CFG_MASK_RDPR_USER_DATA_WPR},
-    device::{parse_number, ChipDB},
-    transport::{SerialTransport, UsbTransport},
     Baudrate, Chip, Command, Transport,
+    constants::{CFG_MASK_ALL, CFG_MASK_RDPR_USER_DATA_WPR},
+    device::{ChipDB, parse_number},
+    transport::{SerialTransport, UsbTransport},
 };
 
 pub struct Flashing<'a> {
@@ -166,6 +166,26 @@ impl<'a> Flashing<'a> {
         }
         self.dump_config()?;
 
+        Ok(())
+    }
+
+    /// Write config bits to the config register.
+    pub fn write_config(&mut self, value: &str) -> Result<()> {
+        if value.len() != 24 {
+            log::warn!("Config value must be 24 hex characters long: \"{value}\"");
+            return Ok(());
+        }
+
+        let read_conf = Command::read_config(CFG_MASK_RDPR_USER_DATA_WPR);
+        let resp = self.transport.transfer(read_conf)?;
+        anyhow::ensure!(resp.is_ok(), "read_config failed");
+
+        let write_conf = Command::write_config(CFG_MASK_RDPR_USER_DATA_WPR, hex::decode(value)?);
+        let resp = self.transport.transfer(write_conf)?;
+        anyhow::ensure!(resp.is_ok(), "write_config failed");
+
+        log::info!("setting cfg value {}", value);
+        self.reset()?;
         Ok(())
     }
 
